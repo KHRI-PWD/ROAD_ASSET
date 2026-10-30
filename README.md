@@ -6,7 +6,7 @@ This is a complete qgis2web-derived OpenLayers web map for GitHub Pages.
 Extract the ZIP. Copy its contents into the local GitHub Desktop repository folder. Keep index.html at the repository root beside layers and resources. Commit and Push origin. In GitHub Settings > Pages choose Deploy from a branch, main, /(root), Save. Upload the extracted files, not the ZIP. Replace the previous map files together. Hard-refresh the published page after deployment.
 
 ## Map use
-- Bottom-left checkboxes switch the five data layers and the Google Road / Google Satellite basemaps on/off.
+- Bottom-left checkboxes switch the five data layers and the Google Road / Google Satellite / Google Satellite Hybrid basemaps on/off.
 - IRI starts off and downloads only when selected. Progress is shown beside the layer. Loading continues if hidden; once loaded it is reused without downloading again.
 - Click a visible road line or station marker to open a readable attribute table on the right. Up to 12 overlapping features are listed; zoom in or hide other layers to narrow the result.
 - Traffic tables begin with station ID, road and chainage, followed by traffic totals and daily flows. Survey start/end dates have been removed from the actual exported traffic records. Survey duration remains.
@@ -30,4 +30,6 @@ Core Road Network has been replaced using Road Network CRN.gpkg, layer Road Netw
 MSA is an independent point layer above Traffic stations in the legend and map draw order. Its 57 points use existing non-negative numeric Total MSA values from the traffic dataset, with the original station locations. No new MSA calculations or interpolations are performed. The 185 stations without an MSA value remain in Traffic stations and are excluded only from MSA. MSA uses a teal ring with a white outline around the smaller magenta traffic diamond. Click the ring or station to see the visible layers' attribute tables, including Total MSA in million standard axles. Each layer has an independent switch.
 
 ## Satellite basemap
-Select Google Satellite in the bottom-left layer panel for aerial imagery. Selecting either basemap switches the other off; uncheck the selected basemap for a blank background. All five data overlay controls remain independent. Google Road remains the default. This is a 2D satellite basemap, not the Google Earth 3D application. Internet access is required for basemap tiles; imagery availability and detail vary by location.
+Select Google Satellite in the bottom-left layer panel for aerial imagery. Selecting a basemap switches the other basemaps off; uncheck the selected basemap for a blank background. All five data overlay controls remain independent. Google Road remains the default. This is a 2D satellite basemap, not the Google Earth 3D application. Internet access is required for basemap tiles; imagery availability and detail vary by location.
+
+Google Satellite Hybrid adds place names and road labels over satellite imagery. It has its own checkbox in the bottom-left panel. Only one basemap is active at a time, and all can be switched off. Road, IRI, traffic and MSA overlay controls remain independent.

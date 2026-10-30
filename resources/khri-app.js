@@ -37,7 +37,8 @@
   defs.forEach((d,i)=>{const source=new ol.source.Vector();const layer=new ol.layer.Vector({source,visible:d.id!=='iri',updateWhileAnimating:false,updateWhileInteracting:false,style:d.id==='crn'?crnStyle:d.id==='iri'?f=>(styles.iri[f.get('RATING')]||null):styles[d.id]});layer.set('khriId',d.id);layer.setZIndex(10-i);states[d.id]={source,layer,loaded:false,loading:false,error:null,count:0,nextPart:0};});
   const basemap=new ol.layer.Tile({opacity:0.62,source:new ol.source.XYZ({url:'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',attributions:'Map data © Google',crossOrigin:'anonymous'})});
   const satellite=new ol.layer.Tile({visible:false,source:new ol.source.XYZ({url:'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',attributions:'Imagery © Google',crossOrigin:'anonymous',maxZoom:20})});
-  const map=new ol.Map({target:'map',layers:[basemap,satellite,states.nh.layer,states.crn.layer,states.iri.layer,states.traffic.layer,states.msa.layer],view:new ol.View({center:ol.proj.fromLonLat([76.5,10.2]),zoom:8,minZoom:5,maxZoom:22}),pixelRatio:Math.min(window.devicePixelRatio||1,1.5)});
+  const hybrid=new ol.layer.Tile({visible:false,source:new ol.source.XYZ({url:'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',attributions:'Imagery and map data © Google',crossOrigin:'anonymous',maxZoom:20})});
+  const map=new ol.Map({target:'map',layers:[basemap,satellite,hybrid,states.nh.layer,states.crn.layer,states.iri.layer,states.traffic.layer,states.msa.layer],view:new ol.View({center:ol.proj.fromLonLat([76.5,10.2]),zoom:8,minZoom:5,maxZoom:22}),pixelRatio:Math.min(window.devicePixelRatio||1,1.5)});
   window.map=map;
   map.addControl(new ol.control.ScaleLine());
   const fit=()=>{const ext=ol.extent.createEmpty();['nh','crn','traffic'].forEach(id=>{if(states[id].count)ol.extent.extend(ext,states[id].source.getExtent());});if(!ol.extent.isEmpty(ext))map.getView().fit(ext,{padding:window.innerWidth<650?[30,20,40,20]:[40,60,60,310],duration:300,maxZoom:12});};
@@ -52,11 +53,11 @@
   function update(id){const s=states[id],el=$('state-'+id);if(!el)return;el.textContent=s.error?'Load failed — toggle to retry':s.loading?'Loading '+s.count.toLocaleString()+' / '+KHRI_MANIFEST[id].count.toLocaleString():s.loaded?s.count.toLocaleString()+' features':'Loads when selected';el.classList.toggle('error',!!s.error);}
   const list=$('layer-list');
   defs.forEach(d=>{const section=document.createElement('section');section.className='layer-row';const label=document.createElement('label'),check=document.createElement('input'),title=document.createElement('span');check.type='checkbox';check.id='toggle-'+d.id;check.checked=states[d.id].layer.getVisible();title.textContent=d.name;label.append(check,title);section.append(label);const status=document.createElement('small');status.id='state-'+d.id;section.append(status);const ul=document.createElement('ul');d.symbols.forEach(([color,name,type])=>{const li=document.createElement('li'),symbol=document.createElement('span');symbol.className='symbol '+(type||'line');symbol.style.setProperty('--symbol',color);li.append(symbol,document.createTextNode(name));ul.append(li);});section.append(ul);list.append(section);check.onchange=()=>{states[d.id].layer.setVisible(check.checked);section.classList.toggle('off',!check.checked);$('attributes').hidden=true;if(check.checked)loadLayer(d.id);map.render();};states[d.id].layer.on('change:visible',()=>{check.checked=states[d.id].layer.getVisible();section.classList.toggle('off',!check.checked);});section.classList.toggle('off',!check.checked);update(d.id);});
-  function setBasemap(layer,other,checked){layer.setVisible(checked);if(checked)other.setVisible(false);map.render();}
-  basemap.on('change:visible',()=>{$('toggle-base').checked=basemap.getVisible();});
-  satellite.on('change:visible',()=>{$('toggle-satellite').checked=satellite.getVisible();});
-  $('toggle-base').onchange=e=>setBasemap(basemap,satellite,e.target.checked);
-  $('toggle-satellite').onchange=e=>setBasemap(satellite,basemap,e.target.checked);
+  const basemaps=[['toggle-base',basemap],['toggle-satellite',satellite],['toggle-hybrid',hybrid]];
+  basemaps.forEach(([id,layer])=>{
+    layer.on('change:visible',()=>{$(id).checked=layer.getVisible();});
+    $(id).onchange=e=>{const checked=e.target.checked;if(checked)basemaps.forEach(([,other])=>{if(other!==layer)other.setVisible(false);});layer.setVisible(checked);map.render();};
+  });
   $('legend-title').onclick=()=>{const hidden=!$('legend-body').hidden;$('legend-body').hidden=hidden;$('legend-title').setAttribute('aria-expanded',String(!hidden));};
   const hiddenKeys=new Set(['geometry','DATE_FROM','DATE_TO']);
   function display(value,key){if(value===null||value===undefined||value==='')return 'Not recorded';if(typeof value==='number')return value.toLocaleString('en-IN',{maximumFractionDigits:3});return String(value);}
@@ -69,6 +70,6 @@
   map.on('singleclick',evt=>{if(measuring)return;const hits=[],seen=new Set();map.forEachFeatureAtPixel(evt.pixel,(feature,layer)=>{const id=layer&&layer.get('khriId');if(!id||!layer.getVisible()||seen.has(feature))return;seen.add(feature);hits.push({feature,id});return hits.length>=12?true:undefined;},{hitTolerance:8,layerFilter:l=>!!l.get('khriId')&&l.getVisible()});renderAttributes(hits);});
   $('close-attributes').onclick=()=>{$('attributes').hidden=true;};
   window.addEventListener('resize',()=>map.updateSize());
-  window.KHRI={states,map,basemap,satellite,loadLayer,renderAttributes,fields};
+  window.KHRI={states,map,basemap,satellite,hybrid,loadLayer,renderAttributes,fields};
   (async()=>{await loadLayer('traffic');await loadLayer('msa');await loadLayer('nh');await loadLayer('crn');fit();if(!['traffic','msa','nh','crn'].some(id=>states[id].error))$('notice').textContent='Click a road or station to inspect attributes. Select IRI when needed.';})();
 })();
